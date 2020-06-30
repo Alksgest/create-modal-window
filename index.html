@@ -5,17 +5,109 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"
         integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI"
         crossorigin="anonymous"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <script src="create-modal.js"></script>
+    <!-- <script type="module" src="create-modal.js"></script> -->
 </head>
 
 <body>
     <script>
+        const inputGenerator = ({ fieldTitle, name }, model) => {
+    const inputType = name === 'password' ? 'type="password"' : '';
+    return `
+        <label class="control-label" for="${name}Input">${fieldTitle}</label>
+        <input ${inputType} id="${name}Input" value="${model && model[name]}" name="${name}" class="form-control" required autocomplete="new-password">
+    `;
+}
+
+const selectGenerator = ({ name, fieldTitle, values }, model) => {
+    const selectOptions = values.map(option => {
+        return `
+        <option value=${option.id}>${option.value}</option>
+        `;
+    });
+    return `
+        <label class="control-label" for="${name}Select">${fieldTitle}</label>
+        <select class="form-control" id="${name}Select" name="${name}">
+            ${selectOptions}
+        </select>
+    `;
+}
+
+const createModalWindow = (
+    title,
+    subTitle,
+    fields,
+    model,
+    rejectButtonName,
+    submitButtonName,
+    rejectCallback,
+    submitCallback,
+    modalId) => {
+    const fieldsSection = fields.map(el => {
+        if (el.type === 'input') {
+            return inputGenerator(el, model)
+        } else if (el.type === 'select') {
+            return selectGenerator(el, model);
+        }
+    }).join(' ');
+
+    const html = `
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">${title}</h4>
+                    <small class="font-bold">${subTitle}</small>
+                </div>
+                <div class="modal-body">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="form-group">
+                                <form autocomplete="off">
+                                    ${fieldsSection}
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <div class="modal-footer">
+                <button id="close-edit-window-button-${modalId}" type="button" class="btn btn-white"
+                    data-dismiss="modal">${rejectButtonName}</button>
+                <button id="submit-edit-window-button-${modalId}" type="button" class="btn btn-primary">${submitButtonName}</button>
+            </div>
+        </div>
+    </div >
+    `;
+
+    const id = `#${modalId}`;
+
+    if (!$(id).length) {
+        const container = `<div class="modal inmodal" id="${modalId}" tabindex="-1" role="dialog" aria-hidden="true"></div> `;
+        $('body').append(container);
+    }
+
+
+    $(id).html(html);
+    $(`#close-edit-window-button-${modalId}`).on('click', () => {
+        $(id).css('display', 'none');
+        if (rejectCallback) {
+            rejectCallback();
+        }
+    });
+    $(`#submit-edit-window-button-${modalId}`).on('click', () => {
+        $(id).css('display', 'none');
+        if (submitCallback) {
+            submitCallback();
+        }
+    });
+
+    $(id).css('display', 'block');
+}
+
         const fields = [
             {
                 name: 'name',
