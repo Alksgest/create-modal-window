@@ -17,46 +17,72 @@
 <body>
     <script>
         const inputGenerator = ({ fieldTitle, name }, model) => {
-    const inputType = name === 'password' ? 'type="password"' : '';
-    return `
+            const inputType = name === 'password' ? 'type="password"' : '';
+            return `
         <label class="control-label" for="${name}Input">${fieldTitle}</label>
         <input ${inputType} id="${name}Input" value="${model && model[name]}" name="${name}" class="form-control" required autocomplete="new-password">
     `;
-}
+        }
 
-const selectGenerator = ({ name, fieldTitle, values }, model) => {
-    const selectOptions = values.map(option => {
-        return `
+        const selectGenerator = ({ name, fieldTitle, values }, model) => {
+            const selectOptions = values.map(option => {
+                return `
         <option value=${option.id}>${option.value}</option>
         `;
-    });
-    return `
+            });
+            return `
         <label class="control-label" for="${name}Select">${fieldTitle}</label>
         <select class="form-control" id="${name}Select" name="${name}">
             ${selectOptions}
         </select>
     `;
-}
-
-const createModalWindow = (
-    title,
-    subTitle,
-    fields,
-    model,
-    rejectButtonName,
-    submitButtonName,
-    rejectCallback,
-    submitCallback,
-    modalId) => {
-    const fieldsSection = fields.map(el => {
-        if (el.type === 'input') {
-            return inputGenerator(el, model)
-        } else if (el.type === 'select') {
-            return selectGenerator(el, model);
         }
-    }).join(' ');
+        const dictionaryGenerator = ({ keyValueTitles, canAddNewLine }, dict) => {
+            if (canAddNewLine) {
+                return '';
+            } else {
+                let res = '<div class="row">';
+                for (const key in dict) {
+                    res += `
+            <div class="col-sm-6">
+            <label class="control-label" for="${key}Input">${keyValueTitles.key}</label>
+            <input id="${key}Input" value="${key}" name="dict.key.${key}" class="form-control" required autocomplete="new-password">
+            </div>
+            `
+                    res += `
+            <div class="col-sm-6">
+            <label class="control-label" for="${dict[key]}Input">${keyValueTitles.value}</label>
+            <input id="${dict[key]}Input" value="${dict[key]}" name="dict.value.${dict[key]}" class="form-control" required autocomplete="new-password">
+            </div>
+            `
+                }
+                res += '</div>'
 
-    const html = `
+                return res;
+            }
+        }
+
+        const createModalWindow = (
+            title,
+            subTitle,
+            fields,
+            model,
+            rejectButtonName,
+            submitButtonName,
+            rejectCallback,
+            submitCallback,
+            modalId) => {
+            const fieldsSection = fields.map(el => {
+                const switchObj = {
+                    'input': inputGenerator,
+                    'select': selectGenerator,
+                    'dictionary-input': dictionaryGenerator
+                }
+
+                return switchObj[el.type](el, model);
+            }).join(' ');
+
+            const html = `
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -83,30 +109,30 @@ const createModalWindow = (
     </div >
     `;
 
-    const id = `#${modalId}`;
+            const id = `#${modalId}`;
 
-    if (!$(id).length) {
-        const container = `<div class="modal inmodal" id="${modalId}" tabindex="-1" role="dialog" aria-hidden="true"></div> `;
-        $('body').append(container);
-    }
+            if (!$(id).length) {
+                const container = `<div class="modal inmodal" id="${modalId}" tabindex="-1" role="dialog" aria-hidden="true"></div> `;
+                $('body').append(container);
+            }
 
 
-    $(id).html(html);
-    $(`#close-edit-window-button-${modalId}`).on('click', () => {
-        $(id).css('display', 'none');
-        if (rejectCallback) {
-            rejectCallback();
+            $(id).html(html);
+            $(`#close-edit-window-button-${modalId}`).on('click', () => {
+                $(id).css('display', 'none');
+                if (rejectCallback) {
+                    rejectCallback();
+                }
+            });
+            $(`#submit-edit-window-button-${modalId}`).on('click', () => {
+                // $(id).css('display', 'none');
+                if (submitCallback) {
+                    submitCallback();
+                }
+            });
+
+            $(id).css('display', 'block');
         }
-    });
-    $(`#submit-edit-window-button-${modalId}`).on('click', () => {
-        $(id).css('display', 'none');
-        if (submitCallback) {
-            submitCallback();
-        }
-    });
-
-    $(id).css('display', 'block');
-}
 
         const fields = [
             {
@@ -118,6 +144,14 @@ const createModalWindow = (
                 name: 'query',
                 fieldTitle: 'Query',
                 type: 'input'
+            },
+            {
+                type: 'dictionary-input',
+                keyValueTitles: {
+                    key: 'Key',
+                    value: 'Value'
+                },
+                canAddNewLine: false
             }
         ];
         createModalWindow('Title', 'Subtitle', fields, { name: 'sdf', query: 'sdfs' }, 'Cancel', 'Submit',
@@ -125,8 +159,14 @@ const createModalWindow = (
                 console.log('cancel');
             },
             () => {
-                console.log('submit');
-            });
+                const form = $(`#modalId`).find('form');
+                const res = form.serializeArray().reduce(function (obj, item) {
+                    obj[item.name] = item.value;
+                    return obj;
+                }, {});
+                console.log(form.serializeArray());
+                console.log(res);
+            }, 'modalId');
     </script>
 
 </body>

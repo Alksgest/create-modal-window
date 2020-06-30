@@ -32,9 +32,7 @@ const inputGenerator = ({ fieldTitle, name }, model) => {
 
 const selectGenerator = ({ name, fieldTitle, values }, model) => {
     const selectOptions = values.map(option => {
-        return `
-        <option value=${option.id}>${option.value}</option>
-        `;
+        return `<option value=${option.id}>${option.value}</option>`;
     });
     return `
         <label class="control-label" for="${name}Select">${fieldTitle}</label>
@@ -42,6 +40,31 @@ const selectGenerator = ({ name, fieldTitle, values }, model) => {
             ${selectOptions}
         </select>
     `;
+}
+
+const dictionaryGenerator = ({ keyValueTitles, canAddNewLine }, dict) => {
+    if (canAddNewLine) {
+        return '';
+    } else {
+        let res = '<div class="row">';
+        for(const key in dict) {
+            res += `
+            <div class="col-sm-6">
+            <label class="control-label" for="${key}Input">${keyValueTitles.key}</label>
+            <input id="${key}Input" value="${key}" name="dict.key.${key}" class="form-control" required autocomplete="new-password">
+            </div>
+            `
+            res += `
+            <div class="col-sm-6">
+            <label class="control-label" for="${dict[key]}Input">${keyValueTitles.value}</label>
+            <input id="${dict[key]}Input" value="${dict[key]}" name="dict.value.${dict[key]}" class="form-control" required autocomplete="new-password">
+            </div>
+            `
+        }
+        res += '</div>'
+
+        return res;
+    }
 }
 
 export default createModalWindow = (
@@ -55,11 +78,14 @@ export default createModalWindow = (
     submitCallback,
     modalId) => {
     const fieldsSection = fields.map(el => {
-        if (el.type === 'input') {
-            return inputGenerator(el, model)
-        } else if (el.type === 'select') {
-            return selectGenerator(el, model);
+        const switchObj = {
+            'input': inputGenerator,
+            'select': selectGenerator,
+            'dictionary-input': dictionaryGenerator
         }
+
+        return switchObj[el.type](el, model);
+
     }).join(' ');
 
     const html = `
